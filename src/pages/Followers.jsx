@@ -1,0 +1,148 @@
+import React, { useEffect, useState } from "react";
+import { useParams, useNavigate } from "react-router";
+import { fetchUserFollowers, fetchGitHubProfile } from "../services/api";
+import Throbber from "../components/Throbber";
+import NavigationTabs from "../components/NavigationTabs";
+import Pagination from "../components/pagination";
+import ErrorMessage from "../components/ErrorMessage";
+
+ 
+
+const Followers = () => {
+  const { username, page } = useParams();
+ 
+
+  const perPage = 10; 
+  const currentPage = Number(page) || 1;
+  const cacheKey = `followers_${username}_${currentPage}`;
+
+  const [followers, setFollowers] = useState([]);
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [noFollowers, setNoFollowers] = useState(false);
+  const totalFollowers = user?.followers || 0;
+  const totalPages = Math.ceil(totalFollowers / perPage);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const loadData = async () => {
+      setLoading(true);
+      setError(null);
+      setNoFollowers(false);
+
+      try {
+        // Fetch user profile data to get total followers count if the profile screen was skipped
+        const userProfile = await fetchGitHubProfile(username);
+        if (userProfile) {
+          setUser(userProfile);
+        } else {
+          setError("User not found");
+          setLoading(false);
+          return;
+        }
+      
+        // Fetch repositories data (deprecated and moved to api.js file)
+         // Check if followers data is already in session storage (cache) 
+        // const cachedData = sessionStorage.getItem(cacheKey);
+        // if (cachedData) {
+        //   const { data, timestamp } = JSON.parse(cachedData);
+        //   if (Date.now() - timestamp < CACHE_EXPIRATION_TIME) { // Use cached followers data if it's not expired
+        //     setFollowers(data);
+        //     setLoading(false);
+        //     return;
+        //   }
+        // }
+
+
+        // Fetch followers data from the API if no cached data or cache is expired  
+        const response = await fetchUserFollowers(
+          username,
+          currentPage,
+          perPage
+        );
+
+        if (response.length === 0) {
+          setNoFollowers(true);
+        } else {
+          setFollowers(response);
+
+          sessionStorage.setItem(
+            cacheKey,
+            JSON.stringify({
+              data: response,
+              timestamp: Date.now(),
+            })
+          );
+        }
+      } catch (err) {
+        setError(`${err}`);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, [username, currentPage]);
+
+  if (loading)
+    return (
+      <div className="text-center text-gray-400">
+        <Throbber />
+      </div>
+    );
+  if (error) {
+    if (error) {
+      return <ErrorMessage errorMessage={error} />;  
+    }
+  }
+
+  return (
+    <div className="flex justify-center flex-col items-center bg-zinc-800 pt-16 px-4">
+      
+      <NavigationTabs username={username} />
+      <div className="bg-zinc-900 text-white rounded-2xl shadow-lg p-6 w-full max-w-2xl">
+        <p className="text-3xl font-bold text-center  ">
+          {username}'s Followers
+        </p>
+        <p className="text-1xl font-bold text-center mb-4">
+          Total Followers: {totalFollowers}
+        </p>
+
+        {/* Followers or no Followers Message */}
+        {noFollowers ? (
+          <div className="text-center text-gray-400 p-6 bg-zinc-800 rounded-2xl shadow-md">
+            No followers found.
+          </div>
+        ) : (
+          <ul className="space-y-6">
+            {followers.map((follower) => (
+              <li
+              onClick={() => navigate(`/user/${follower.login}`)} // Navigate to followers profile on click
+                key={follower.id}
+                className="p-4 rounded-2xl shadow-md flex h-28 items-center bg-zinc-800"
+              >
+                <img
+                  src={follower.avatar_url}
+                  alt={follower.login}
+                  className="w-16 h-16 rounded-full mr-4"
+                />
+                <h2 className="text-lg font-bold">{follower.login}</h2>
+                <h3>{follower.name}</h3>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {/* Pagination Controls */}
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          basePath={`/user/${username}/followers`}
+        />
+      </div>
+    </div>
+  );
+};
+
+export default Followers;
