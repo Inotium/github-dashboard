@@ -26,7 +26,7 @@ const Followers = () => {
       setNoFollowers(false);
 
       try {
-        // Fetch user profile data
+        // Fetch user profile data to dsiplay amount of followers , will 
         const userProfile = await fetchGitHubProfile(username);
         if (userProfile) {
           setUser(userProfile);

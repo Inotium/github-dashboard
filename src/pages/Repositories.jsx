@@ -35,7 +35,7 @@ const Repositories = () => {
         }
         setUser(userProfile);
 
-        // Fetch all repositories at to properly sort through the stars
+        // Fetch all repositories to properly sort through the stars
         const response = await fetchUserRepositories(username, 1, 100);
         if (response.length === 0) {
           setNoRepos(true);
