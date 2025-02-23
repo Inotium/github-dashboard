@@ -6,23 +6,17 @@ import NavigationTabs from "../components/NavigationTabs";
 import Pagination from "../components/pagination";
 import ErrorMessage from "../components/ErrorMessage";
 
- 
-
 const Followers = () => {
   const { username, page } = useParams();
- 
-
-  const perPage = 10; 
-  const currentPage = Number(page) || 1;
-  const cacheKey = `followers_${username}_${currentPage}`;
-
+  const perPage = 10; // Followers per page
+  const currentPage = Number(page) || 1; // Ensure currentPage is a number (default to 1)
   const [followers, setFollowers] = useState([]);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [noFollowers, setNoFollowers] = useState(false);
   const totalFollowers = user?.followers || 0;
-  const totalPages = Math.ceil(totalFollowers / perPage);
+  const totalPages = Math.ceil(totalFollowers / perPage); // Calculate total ammount of pages
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -32,7 +26,7 @@ const Followers = () => {
       setNoFollowers(false);
 
       try {
-        // Fetch user profile data to get total followers count if the profile screen was skipped
+        // Fetch user profile data
         const userProfile = await fetchGitHubProfile(username);
         if (userProfile) {
           setUser(userProfile);
@@ -41,21 +35,8 @@ const Followers = () => {
           setLoading(false);
           return;
         }
-      
-        // Fetch repositories data (deprecated and moved to api.js file)
-         // Check if followers data is already in session storage (cache) 
-        // const cachedData = sessionStorage.getItem(cacheKey);
-        // if (cachedData) {
-        //   const { data, timestamp } = JSON.parse(cachedData);
-        //   if (Date.now() - timestamp < CACHE_EXPIRATION_TIME) { // Use cached followers data if it's not expired
-        //     setFollowers(data);
-        //     setLoading(false);
-        //     return;
-        //   }
-        // }
 
-
-        // Fetch followers data from the API if no cached data or cache is expired  
+        // Fetch followers for the given page
         const response = await fetchUserFollowers(
           username,
           currentPage,
@@ -66,14 +47,6 @@ const Followers = () => {
           setNoFollowers(true);
         } else {
           setFollowers(response);
-
-          sessionStorage.setItem(
-            cacheKey,
-            JSON.stringify({
-              data: response,
-              timestamp: Date.now(),
-            })
-          );
         }
       } catch (err) {
         setError(`${err}`);
@@ -83,7 +56,7 @@ const Followers = () => {
     };
 
     loadData();
-  }, [username, currentPage]);
+  }, [username, currentPage]); // Re run effect when username or page changes
 
   if (loading)
     return (
@@ -92,25 +65,20 @@ const Followers = () => {
       </div>
     );
   if (error) {
-    if (error) {
-      return <ErrorMessage errorMessage={error} />;  
-    }
+    return <ErrorMessage errorMessage={error} />;
   }
 
   return (
     <div className="flex justify-center flex-col items-center bg-zinc-800 pt-16 px-4">
-      
       <NavigationTabs username={username} />
       <div className="bg-zinc-900 text-white rounded-2xl shadow-lg p-6 w-full max-w-2xl">
-        <p className="text-3xl font-bold text-center  ">
-          {username}'s Followers
-        </p>
+        <p className="text-3xl font-bold text-center">{username}'s Followers</p>
         <p className="text-1xl font-bold text-center mb-4">
           Total Followers: {totalFollowers}
         </p>
 
-        {/* Followers or no Followers Message */}
         {noFollowers ? (
+          // Display message if no followers are found
           <div className="text-center text-gray-400 p-6 bg-zinc-800 rounded-2xl shadow-md">
             No followers found.
           </div>
@@ -118,7 +86,7 @@ const Followers = () => {
           <ul className="space-y-6">
             {followers.map((follower) => (
               <li
-              onClick={() => navigate(`/user/${follower.login}`)} // Navigate to followers profile on click
+                onClick={() => navigate(`/user/${follower.login}`)}
                 key={follower.id}
                 className="p-4 rounded-2xl shadow-md flex h-28 items-center bg-zinc-800"
               >
@@ -134,7 +102,7 @@ const Followers = () => {
           </ul>
         )}
 
-        {/* Pagination Controls */}
+        {/* Pagination component for navigating through pages */}
         <Pagination
           currentPage={currentPage}
           totalPages={totalPages}
